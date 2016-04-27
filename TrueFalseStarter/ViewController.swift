@@ -76,13 +76,20 @@ class ViewController: UIViewController {
         // Dispose of any resources that can be recreated.
     }
     
-    func randomNumber() -> Int {
-        let randomNumber = Int(arc4random_uniform(UInt32(trivia.count)))
-        return randomNumber
+    var previousNumber: UInt32 = 0
+    func randomNumber(maximum: Int) -> Int {
+        var randomNumber = arc4random_uniform(UInt32(maximum))
+        while (previousNumber == randomNumber) {
+            randomNumber = arc4random_uniform(UInt32(maximum))
+        }
+        previousNumber = randomNumber
+
+        return Int(randomNumber)
     }
+
     
     func displayQuestion() {
-        indexOfSelectedQuestion = randomNumber()
+        indexOfSelectedQuestion = randomNumber(trivia.count)
         let questionDictionary = trivia[indexOfSelectedQuestion]
         questionField.text = questionDictionary[Constants.Question.rawValue]
         playAgainButton.hidden = true
