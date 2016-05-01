@@ -16,15 +16,18 @@ enum Constants: String {
     case True
     case False
     case Maybe
-    case IDontKnow
+    case IDontKnow = "I Don't Know"
 }
 
 class ViewController: UIViewController {
     
-    let questionsPerRound = 10
+    let questionsPerRound = 4
     var questionsAsked = 0
     var correctQuestions = 0
     var indexOfSelectedQuestion: Int = 0
+    var phase: Int = 0
+    var count = 15
+    var timeSpeed = 1.0
     
     var correctAnswerSound: SystemSoundID = 0
     var introductionSound: SystemSoundID = 0
@@ -59,6 +62,7 @@ class ViewController: UIViewController {
     @IBOutlet weak var maybeButton: UIButton!
     @IBOutlet weak var iDontKnowButton: UIButton!
     @IBOutlet weak var playAgainButton: UIButton!
+    @IBOutlet weak var timerLabel: UILabel!
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -67,6 +71,7 @@ class ViewController: UIViewController {
         loadIncorrectAnswerSound()
         
         playGameStartSound()
+        timerLabel.hidden = true
         // Start game
         displayQuestion()
     }
@@ -83,16 +88,17 @@ class ViewController: UIViewController {
             randomNumber = arc4random_uniform(UInt32(maximum))
         }
         previousNumber = randomNumber
-
+        
         return Int(randomNumber)
     }
 
-    
     func displayQuestion() {
+        phase = 1
         indexOfSelectedQuestion = randomNumber(trivia.count)
         let questionDictionary = trivia[indexOfSelectedQuestion]
         questionField.text = questionDictionary[Constants.Question.rawValue]
-        playAgainButton.hidden = true
+        playAgainButton.setTitle("Lightning Mode", forState: .Normal)
+        count = 15
     }
     
     func displayScore() {
@@ -101,9 +107,10 @@ class ViewController: UIViewController {
         falseButton.hidden = true
         maybeButton.hidden = true
         iDontKnowButton.hidden = true
-        
-        // Display play again button
+        timerLabel.hidden = true
+        playAgainButton.setTitle("Play Again", forState: .Normal)
         playAgainButton.hidden = false
+        phase = 2
         
         questionField.text = "Way to go!\nYou got \(correctQuestions) out of \(questionsPerRound) correct!"
         
@@ -112,11 +119,8 @@ class ViewController: UIViewController {
     @IBAction func checkAnswer(sender: UIButton) {
         // Increment the questions asked counter
         questionsAsked += 1
-        
         let selectedQuestionDict = trivia[indexOfSelectedQuestion]
         let correctAnswer = selectedQuestionDict[Constants.Answer.rawValue]
-        
-        
         
         if (sender === trueButton &&  correctAnswer == Constants.True.rawValue) || (sender === falseButton && correctAnswer == Constants.False.rawValue) || (sender === maybeButton && correctAnswer == Constants.Maybe.rawValue) || (sender === iDontKnowButton && correctAnswer == Constants.IDontKnow.rawValue) {
             correctQuestions += 1
@@ -127,8 +131,8 @@ class ViewController: UIViewController {
             correctAlert()
             playIncorrectAnswerSound()
         }
-        
         loadNextRoundWithDelay(seconds: 1)
+        count = 16
     }
     
     func nextRound() {
@@ -143,21 +147,50 @@ class ViewController: UIViewController {
     }
     
     @IBAction func playAgain() {
-        // Show the answer buttons
-        trueButton.hidden = false
-        falseButton.hidden = false
-        maybeButton.hidden = false
-        iDontKnowButton.hidden = false
+        if (phase == 1) {
+            timerLabel.hidden = false
+            displayTime(timeSpeed)
+            playAgainButton.hidden = true
+        } else {
+            timerLabel.hidden = true
+        }
         
-        questionsAsked = 0
-        correctQuestions = 0
-        playGameStartSound()
-        nextRound()
+        // Show the answer buttons
+        if (phase == 2) {
+            trueButton.hidden = false
+            falseButton.hidden = false
+            maybeButton.hidden = false
+            iDontKnowButton.hidden = false
+            
+            count = 15
+            questionsAsked = 0
+            correctQuestions = 0
+            timeSpeed = 1.0
+            playGameStartSound()
+            nextRound()
+        }
     }
     
-
-    
     // MARK: Helper Methods
+    func countingTimer() {
+        if (count > 0) {
+            count -= 1
+            if (count > 9) {
+                timerLabel.text = "0:\(count)"
+            } else {
+                timerLabel.text = "0:0\(count)"
+            }
+        }
+        if (count == 0) {
+            displayScore()
+            lightningFailDisplayScoreAlert()
+            count = 15
+        }
+    }
+    
+    func displayTime(speed: Double) {
+        NSTimer.scheduledTimerWithTimeInterval(speed, target: self, selector: #selector(self.countingTimer), userInfo: nil, repeats: true)
+    }
     
     func loadNextRoundWithDelay(seconds seconds: Int) {
         // Converts a delay in seconds to nanoseconds as signed 64 bit integer
@@ -183,15 +216,29 @@ class ViewController: UIViewController {
     }
     
     func displayScoreAlert() {
-        let percentage = correctQuestions * 10
+        let percentage = (correctQuestions * 100) / questionsPerRound
         
         let alertController = UIAlertController(title: "Final Score", message: "You got \(percentage)% of the questions right", preferredStyle: .Alert)
-        let action = UIAlertAction(title: "Okay", style: .Default, handler: nil)
-        alertController.addAction(action)
+        if (percentage == 100) {
+            let action = UIAlertAction(title: "Good Job!", style: .Default, handler: nil)
+            alertController.addAction(action)
+        } else {
+            let action = UIAlertAction(title: "Try Again", style: .Default, handler: nil)
+            alertController.addAction(action)
+        }
         
         presentViewController(alertController, animated: true, completion: nil)
     }
     
+    func lightningFailDisplayScoreAlert() {
+        let percentage = (correctQuestions * 100) / questionsPerRound
+        
+        let alertController = UIAlertController(title: "Failed Lightning Round", message: "You got \(percentage)% of the questions right", preferredStyle: .Alert)
+        let action = UIAlertAction(title: "Try Again", style: .Default, handler: nil)
+        alertController.addAction(action)
+        
+        presentViewController(alertController, animated: true, completion: nil)
+    }
     
     func loadGameStartSound() {
         let pathToSoundFile = NSBundle.mainBundle().pathForResource("Introduction", ofType: "wav")
