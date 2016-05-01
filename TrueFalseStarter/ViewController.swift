@@ -98,7 +98,7 @@ class ViewController: UIViewController {
         let questionDictionary = trivia[indexOfSelectedQuestion]
         questionField.text = questionDictionary[Constants.Question.rawValue]
         playAgainButton.setTitle("Lightning Mode", forState: .Normal)
-        count = 15
+        count = 16
     }
     
     func displayScore() {
@@ -165,7 +165,7 @@ class ViewController: UIViewController {
             count = 15
             questionsAsked = 0
             correctQuestions = 0
-            timeSpeed = 1.0
+            timeSpeed = Double(NSEC_PER_SEC / UInt64(1.0))
             playGameStartSound()
             nextRound()
         }
