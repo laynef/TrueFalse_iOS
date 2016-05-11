@@ -21,7 +21,7 @@ enum Constants: String {
 
 class ViewController: UIViewController {
     
-    let questionsPerRound = 4
+    let questionsPerRound = 10
     var questionsAsked = 0
     var correctQuestions = 0
     var indexOfSelectedQuestion: Int = 0
@@ -81,20 +81,19 @@ class ViewController: UIViewController {
         // Dispose of any resources that can be recreated.
     }
     
-    var previousNumber: UInt32 = 0
-    func randomNumber(maximum: Int) -> Int {
-        var randomNumber = arc4random_uniform(UInt32(maximum))
-        while (previousNumber == randomNumber) {
-            randomNumber = arc4random_uniform(UInt32(maximum))
+    var previousNumbers: [Int] = []
+    func randomNumberGenator() -> Int {
+        var randomNumber = Int(arc4random_uniform(UInt32(trivia.count)))
+        while (previousNumbers.contains(randomNumber)) {
+            randomNumber = Int(arc4random_uniform(UInt32(trivia.count)))
         }
-        previousNumber = randomNumber
-        
-        return Int(randomNumber)
+        previousNumbers.append(randomNumber)
+        return randomNumber
     }
 
     func displayQuestion() {
         phase = 1
-        indexOfSelectedQuestion = randomNumber(trivia.count)
+        indexOfSelectedQuestion = randomNumberGenator()
         let questionDictionary = trivia[indexOfSelectedQuestion]
         questionField.text = questionDictionary[Constants.Question.rawValue]
         playAgainButton.setTitle("Lightning Mode", forState: .Normal)
@@ -140,6 +139,7 @@ class ViewController: UIViewController {
             // Game is over
             displayScore()
             displayScoreAlert()
+            previousNumbers.removeAll()
         } else {
             // Continue game
             displayQuestion()
@@ -165,7 +165,6 @@ class ViewController: UIViewController {
             count = 15
             questionsAsked = 0
             correctQuestions = 0
-            timeSpeed = Double(NSEC_PER_SEC / UInt64(1.0))
             playGameStartSound()
             nextRound()
         }
@@ -231,9 +230,7 @@ class ViewController: UIViewController {
     }
     
     func lightningFailDisplayScoreAlert() {
-        let percentage = (correctQuestions * 100) / questionsPerRound
-        
-        let alertController = UIAlertController(title: "Failed Lightning Round", message: "You got \(percentage)% of the questions right", preferredStyle: .Alert)
+        let alertController = UIAlertController(title: "Failed Lightning Round", message: "You finished \(questionsAsked) out of \(questionsPerRound) questions asked", preferredStyle: .Alert)
         let action = UIAlertAction(title: "Try Again", style: .Default, handler: nil)
         alertController.addAction(action)
         
